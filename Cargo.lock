@@ -185,7 +185,7 @@ checksum = "c4512299f36f043ab09a583e57bceb5a5aab7a73db1805848e8fef3c9e8c78b3"
 [[package]]
 name = "bridge-encodings"
 version = "0.1.0"
-source = "git+https://github.com/Rick-Wilson/bridge-encodings#c969019aea21eaa255894d1381ec569787e54cc2"
+source = "git+https://github.com/bridge-craftwork/bridge-encodings#c969019aea21eaa255894d1381ec569787e54cc2"
 dependencies = [
  "bridge-types",
  "thiserror",
@@ -214,7 +214,7 @@ dependencies = [
 [[package]]
 name = "bridge-parsers"
 version = "0.1.0"
-source = "git+https://github.com/Rick-Wilson/Bridge-Parsers#c386a57afc920d1f2dc9ea4196e2914d60a3c01c"
+source = "git+https://github.com/bridge-craftwork/Bridge-Parsers#c386a57afc920d1f2dc9ea4196e2914d60a3c01c"
 dependencies = [
  "anyhow",
  "bridge-encodings",
@@ -237,7 +237,7 @@ dependencies = [
 [[package]]
 name = "bridge-types"
 version = "0.1.0"
-source = "git+https://github.com/Rick-Wilson/bridge-types#a1272c0605d198df64b0cf0eae593a0d56ef1b37"
+source = "git+https://github.com/bridge-craftwork/bridge-types#a1272c0605d198df64b0cf0eae593a0d56ef1b37"
 
 [[package]]
 name = "bumpalo"
