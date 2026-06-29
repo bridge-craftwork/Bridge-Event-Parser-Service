@@ -76,10 +76,10 @@ jobs:
       - name: Determine tags
         id: tags
         run: |
-          TAGS="ghcr.io/rick-wilson/bridge-event-parser-service:main"
+          TAGS="ghcr.io/bridge-craftwork/bridge-event-parser-service:main"
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             VERSION="${{ github.ref_name }}"
-            TAGS="$TAGS,ghcr.io/rick-wilson/bridge-event-parser-service:${VERSION},ghcr.io/rick-wilson/bridge-event-parser-service:latest"
+            TAGS="$TAGS,ghcr.io/bridge-craftwork/bridge-event-parser-service:${VERSION},ghcr.io/bridge-craftwork/bridge-event-parser-service:latest"
           fi
           echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@v5

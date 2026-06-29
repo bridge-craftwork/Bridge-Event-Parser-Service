@@ -1,5 +1,5 @@
 SERVICE := "bridge-event-parser-service"
-IMAGE   := "ghcr.io/rick-wilson/" + SERVICE
+IMAGE   := "ghcr.io/bridge-craftwork/" + SERVICE
 DROPLET := "bridge-droplet"
 
 default:
