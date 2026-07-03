@@ -5,15 +5,19 @@ DROPLET := "bridge-droplet"
 default:
     @just --list
 
+# dev/test go through dev-build.sh so the gitignored local-checkout patches
+# in .cargo/config.toml take effect without dirtying the committed Cargo.lock
+# (see CLAUDE.md).
 dev:
-    cargo run
+    ./dev-build.sh run
 
 test:
-    cargo test
+    ./dev-build.sh test
 
+# CI parity: patches disabled, committed lock's git pins.
 check:
     cargo fmt --check
-    cargo clippy -- -D warnings
+    ./dev-build.sh --ci clippy -- -D warnings
 
 release VERSION:
     git tag {{VERSION}}
