@@ -11,6 +11,10 @@ path = "src/main.rs"
 
 [dependencies]
 bridge-parsers = { git = "https://github.com/bridge-craftwork/Bridge-Parsers" }
+# `DdTable`, the decoded form of PBN's DoubleDummyTricks, which bridge-parsers
+# does not re-export. Same git source as bridge-parsers' own dependency, so
+# cargo resolves a single copy and the types are identical.
+bridge-types = { git = "https://github.com/bridge-craftwork/bridge-types" }
 axum = { version = "0.7", features = ["multipart"] }
 tokio = { version = "1", features = ["full"] }
 tower-http = { version = "0.5", features = ["cors", "trace"] }
