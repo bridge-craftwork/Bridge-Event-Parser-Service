@@ -16,6 +16,7 @@ use crate::types::{BoardData, ContractResult, ParsedContract, SeatPlayers};
 use bridge_parsers::bws::{read_bws, BwsData};
 use bridge_parsers::pbn::read_pbn;
 use bridge_parsers::{Board as PbnBoard, Contract, Deal, Direction, Strain, Suit, Vulnerability};
+use bridge_types::DdTable;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
@@ -298,8 +299,8 @@ fn build_schema_board(number: u32, pbn: Option<&&PbnBoard>) -> SchemaBoard {
         }
     });
     let double_dummy = pbn
-        .and_then(|b| b.double_dummy_tricks.as_deref())
-        .and_then(dd_string_to_schema);
+        .and_then(|b| b.double_dummy_tricks.as_ref())
+        .map(dd_table_to_schema);
     let par = pbn
         .map(|b| par_strings_to_schema(b.par_contract.as_deref(), b.optimum_score.as_deref(), vul))
         .unwrap_or_default();
@@ -352,33 +353,27 @@ fn cards_in_suit(hand: &bridge_parsers::Hand, suit: Suit) -> Vec<String> {
         .collect()
 }
 
-/// Decode the PBN 20-char DD hex string into the schema's per-declarer object.
-fn dd_string_to_schema(s: &str) -> Option<SchemaDoubleDummy> {
-    let bytes = s.as_bytes();
-    if bytes.len() < 20 {
-        return None;
+/// Project a decoded double-dummy table onto the schema's per-declarer object.
+///
+/// `DdTable` is addressed by seat and strain, so this cannot transpose: the
+/// schema's own field names decide which cell each value comes from. Every
+/// cell of a decoded table is known, so all twenty are `Some`; the schema
+/// keeps them optional only because it also has to describe partial data from
+/// other sources.
+fn dd_table_to_schema(table: &DdTable) -> SchemaDoubleDummy {
+    let strains_for = |declarer: Direction| SchemaDdStrains {
+        no_trump: Some(table.tricks(declarer, Strain::NoTrump)),
+        spades: Some(table.tricks(declarer, Strain::Spades)),
+        hearts: Some(table.tricks(declarer, Strain::Hearts)),
+        diamonds: Some(table.tricks(declarer, Strain::Diamonds)),
+        clubs: Some(table.tricks(declarer, Strain::Clubs)),
+    };
+    SchemaDoubleDummy {
+        north: Some(strains_for(Direction::North)),
+        south: Some(strains_for(Direction::South)),
+        east: Some(strains_for(Direction::East)),
+        west: Some(strains_for(Direction::West)),
     }
-    let nib = |i: usize| -> Option<u8> {
-        match bytes.get(i)? {
-            ch @ b'0'..=b'9' => Some(ch - b'0'),
-            ch @ b'a'..=b'd' => Some(ch - b'a' + 10),
-            ch @ b'A'..=b'D' => Some(ch - b'A' + 10),
-            _ => None,
-        }
-    };
-    let strains_for = |off: usize| SchemaDdStrains {
-        no_trump: nib(off),
-        spades: nib(off + 1),
-        hearts: nib(off + 2),
-        diamonds: nib(off + 3),
-        clubs: nib(off + 4),
-    };
-    Some(SchemaDoubleDummy {
-        north: Some(strains_for(0)),
-        south: Some(strains_for(5)),
-        east: Some(strains_for(10)),
-        west: Some(strains_for(15)),
-    })
 }
 
 /// Parse PBN par strings into the schema's Vec<Par>. Tied par "N 4H=; S 4S="
@@ -682,6 +677,91 @@ fn resolve_pair_from_table(
     (lookup_seat(d1), lookup_seat(d2))
 }
 
-// silence unused-import warning when Strain isn't referenced elsewhere here
-#[allow(dead_code)]
-fn _strain_used(_s: Strain) {}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Read one board from a PBN fragment.
+    fn read_one(pbn: &str) -> PbnBoard {
+        let boards = read_pbn(pbn).expect("fragment parses");
+        boards.into_iter().next().expect("one board")
+    }
+
+    /// Serialise the `double_dummy` member of the schema board built from `pbn`.
+    fn dd_json(pbn: &str) -> String {
+        let board = read_one(pbn);
+        let schema = build_schema_board(1, Some(&&board));
+        serde_json::to_string(&schema.double_dummy).expect("serialises")
+    }
+
+    fn fragment(dd_value: &str) -> String {
+        format!(
+            "[Board \"1\"]\n[Dealer \"N\"]\n[Vulnerable \"None\"]\n[DoubleDummyTricks \"{dd_value}\"]\n"
+        )
+    }
+
+    /// Pins the seat/strain mapping of `DoubleDummyTricks` to the emitted JSON.
+    ///
+    /// The tag is seat-major in N, S, E, W and strain-major in NT, S, H, D, C.
+    /// Both expectations here are byte-for-byte what this adapter emitted
+    /// before `double_dummy_tricks` became a decoded `DdTable`, so a
+    /// transposition of either axis fails the test rather than quietly
+    /// changing the JSON.
+    #[test]
+    fn double_dummy_tag_maps_to_seats_and_strains() {
+        // Symmetric across partners, so it only pins the strain axis.
+        assert_eq!(
+            dd_json(&fragment("56865568656757867578")),
+            r#"{"N":{"C":5,"D":6,"H":8,"S":6,"NT":5},"E":{"C":8,"D":7,"H":5,"S":7,"NT":6},"S":{"C":5,"D":6,"H":8,"S":6,"NT":5},"W":{"C":8,"D":7,"H":5,"S":7,"NT":6}}"#
+        );
+        // All twenty cells distinct enough that any transposition of seats or
+        // strains moves at least one value.
+        assert_eq!(
+            dd_json(&fragment("da0b19c8375624ac0d13")),
+            r#"{"N":{"C":1,"D":11,"H":0,"S":10,"NT":13},"E":{"C":10,"D":4,"H":2,"S":6,"NT":5},"S":{"C":7,"D":3,"H":8,"S":12,"NT":9},"W":{"C":3,"D":1,"H":13,"S":0,"NT":12}}"#
+        );
+    }
+
+    /// `a`-`d` and `A`-`D` both mean ten to thirteen.
+    #[test]
+    fn double_dummy_digits_are_case_insensitive() {
+        assert_eq!(
+            dd_json(&fragment("abcd0000000000000000")),
+            dd_json(&fragment("ABCD0000000000000000"))
+        );
+    }
+
+    /// A malformed tag value drops the whole table, not just the bad cell.
+    ///
+    /// The previous private decoder was lenient per character: a bad digit
+    /// left one `null` cell in an otherwise populated table. The shared
+    /// decoder in bridge-encodings rejects the value outright, so
+    /// `double_dummy` is absent. Absent is the honest answer — a table with
+    /// one hole cannot be told apart from one the producer meant to leave
+    /// partial — and this service already emits `null` for boards with no
+    /// analysis at all.
+    #[test]
+    fn malformed_double_dummy_yields_no_table() {
+        // 19 characters.
+        assert_eq!(dd_json(&fragment("5686556865675786757")), "null");
+        // 20 characters, one of them not a trick count.
+        assert_eq!(dd_json(&fragment("5686556865675786757z")), "null");
+        // 'e' would be 14 tricks.
+        assert_eq!(dd_json(&fragment("e6865568656757867578")), "null");
+        // Absent tag.
+        assert_eq!(dd_json("[Board \"1\"]\n[Dealer \"N\"]\n"), "null");
+    }
+
+    /// `dd_table_to_schema` reads by seat and strain, with no PBN codec in the
+    /// way: one cell set, one cell non-zero.
+    #[test]
+    fn table_cells_land_in_the_named_fields() {
+        let mut table = DdTable::new();
+        table.set(Direction::West, Strain::Hearts, 11);
+        let schema = dd_table_to_schema(&table);
+        assert_eq!(
+            serde_json::to_string(&schema).expect("serialises"),
+            r#"{"N":{"C":0,"D":0,"H":0,"S":0,"NT":0},"E":{"C":0,"D":0,"H":0,"S":0,"NT":0},"S":{"C":0,"D":0,"H":0,"S":0,"NT":0},"W":{"C":0,"D":0,"H":11,"S":0,"NT":0}}"#
+        );
+    }
+}

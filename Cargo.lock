@@ -191,7 +191,7 @@ checksum = "b4388bee8683e3d04af747c73422af53102d2bd24d9eadb6cbc100baef4b43f8"
 [[package]]
 name = "bridge-encodings"
 version = "0.1.0"
-source = "git+https://github.com/bridge-craftwork/bridge-encodings#bdc24be10f0e59d1f19fe86ec74fe9a4889209e5"
+source = "git+https://github.com/bridge-craftwork/bridge-encodings#e3826fa47f3db95c7268737da49ed50719398ee8"
 dependencies = [
  "bridge-types",
  "thiserror",
@@ -203,6 +203,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "bridge-parsers",
+ "bridge-types",
  "chrono",
  "dotenvy",
  "serde",
@@ -220,7 +221,7 @@ dependencies = [
 [[package]]
 name = "bridge-parsers"
 version = "0.1.0"
-source = "git+https://github.com/bridge-craftwork/Bridge-Parsers#c44e3540698b4f241235492e12c8a66671c420b8"
+source = "git+https://github.com/bridge-craftwork/Bridge-Parsers#9b965951fdf2949432e1c37595fa9350647330b0"
 dependencies = [
  "anyhow",
  "bridge-encodings",
@@ -243,7 +244,7 @@ dependencies = [
 [[package]]
 name = "bridge-types"
 version = "0.1.0"
-source = "git+https://github.com/bridge-craftwork/bridge-types#6159bd7ba3a5c4ab8f14510df6194300f17bbb88"
+source = "git+https://github.com/bridge-craftwork/bridge-types#57f32241d49114c723bdf6428477ba65ab9ed1d8"
 
 [[package]]
 name = "bumpalo"
