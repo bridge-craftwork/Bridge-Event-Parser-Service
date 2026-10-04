@@ -35,7 +35,7 @@ Use SSH for all GitHub operations:
 
 ## Related Projects
 
-All located at `/Users/rick/Development/GitHub/`:
+All located at `/Volumes/Express2T/Development/GitHub/`:
 
 - `../Bridge-Parsers` — PBN/LIN parsing (git dependency; local dev via gitignored `.cargo/config.toml` patch + `./dev-build.sh`)
 - `../bridge-types`, `../bridge-encodings` — transitive internal deps, patched the same way
